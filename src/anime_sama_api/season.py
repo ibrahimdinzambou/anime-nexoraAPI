@@ -186,7 +186,13 @@ class Season:
     async def episodes(self) -> list[Episode]:
         pages = await self.get_all_pages()
 
+        if not pages:
+            return []
+
         players_list = [self._get_players_from(page) for page in pages]
+
+        if not players_list or not any(players_list):
+            return []
 
         number_of_episodes_max = max(
             len(episodes_page) for episodes_page in players_list

@@ -67,10 +67,14 @@ class Catalogue:
 
         # Insensible à la casse pour VOSTFR/Vf (ex. Berserk, pages avec VOSTFR en majuscules)
         seasons = re.findall(
-            r'panneauAnime\("(.+?)", *"(.+?)(?:vostfr|vf)"\);',
+            r'panneauAnime\("([^"]+)",\s*"([^"]+)"\);',
             page_without_comments,
             re.IGNORECASE,
         )
+        seasons = [
+            (name, re.sub(r"/(?:vostfr|vf)$", "", link, flags=re.IGNORECASE))
+            for name, link in seasons
+        ]
 
         seasons = [
             Season(

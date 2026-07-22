@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ASTRA — Anime player</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <div class="grain"></div>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="ASTRA accueil"><span class="brand-mark">✦</span> ASTRA<span class="brand-dot">.</span></a>
+      <div class="status"><i></i> API CONNECTÉE</div>
+    </header>
+
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">ANIME-SAMA / LECTEUR LAN</p>
+        <h1>Votre prochaine<br><em>épopée</em> commence ici.</h1>
+        <p class="lede">Cherchez une série, choisissez une saison,<br>puis lancez votre épisode préféré.</p>
+        <form id="search-form" class="searchbar">
+          <span class="search-icon">⌕</span>
+          <input id="search-input" type="search" placeholder="Rechercher un anime..." autocomplete="off" required>
+          <button type="submit">Explorer <span>↗</span></button>
+        </form>
+        <button id="browse-button" class="browse-button" type="button">Parcourir le catalogue complet <span>↓</span></button>
+        <p id="message" class="message" role="status"></p>
+      </section>
+
+      <section class="workspace">
+        <div class="catalogue-column">
+          <div class="section-heading"><span>01 / CATALOGUE</span><strong id="result-count">Prêt à chercher</strong></div>
+          <div id="results" class="results empty-state"><span class="empty-icon">◌</span><p>Les titres apparaîtront ici.</p></div>
+        </div>
+        <aside class="details-column">
+          <div class="section-heading"><span>02 / SÉLECTION</span><strong id="selected-title">Aucun titre</strong></div>
+          <div id="details" class="details empty-state"><span class="empty-icon">＋</span><p>Sélectionnez un titre<br>pour voir ses saisons.</p></div>
+        </aside>
+      </section>
+
+      <section class="player-section">
+        <div class="section-heading"><span>03 / LECTEUR</span><strong id="player-label">En attente</strong></div>
+        <div class="player-frame">
+          <div id="player-placeholder" class="player-placeholder"><span class="play-symbol">▶</span><p>Choisissez un épisode pour commencer</p></div>
+          <iframe id="player" title="Lecteur vidéo" allowfullscreen referrerpolicy="no-referrer" hidden></iframe>
+        </div>
+        <p class="player-note">Les lecteurs sont fournis par Anime-Sama. Certains hébergeurs peuvent bloquer l’intégration dans un navigateur.</p>
+      </section>
+    </main>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

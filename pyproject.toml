@@ -28,6 +28,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "flask>=3.1.0",
     "httpx>=0.28.1",
     "platformdirs>=4.5.1",
     "rich>=14.2.0",
@@ -36,7 +37,15 @@ dependencies = [
     "yt-dlp>=2025.8.22",
 ]
 
+[project.optional-dependencies]
+api = [
+    "flask>=3.1.0",
+    "gunicorn>=23.0.0; platform_system != 'Windows'",
+]
+
 [project.scripts]
+anime-sama-api = "anime_sama_api.api:main"
+
 anime-sama-cli = "anime_sama_api.cli_standalone:main"
 anime-sama = "anime_sama_api.cli_standalone:main"
 

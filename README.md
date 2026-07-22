@@ -42,6 +42,51 @@ Elles sont installées automatiquement avec le projet : `httpx`, `platformdirs`,
 
 </details>
 
+## API Flask
+
+Le projet fournit également une API JSON basée sur Flask. Installez les
+dépendances API puis lancez le serveur :
+
+```bash
+pip install -e ".[api]"
+anime-sama-api
+```
+
+Le serveur écoute sur `http://localhost:5000`. La variable
+`ANIME_SAMA_SITE_URL` permet de changer le domaine source.
+
+L’interface lecteur est disponible directement à la racine : `http://localhost:5000/`.
+Le serveur écoute par défaut sur `0.0.0.0`, donc il est accessible depuis le LAN.
+Trouvez l’adresse IPv4 de la machine avec `ipconfig`, puis ouvrez par exemple
+`http://192.168.1.20:5000/` depuis un autre appareil. Si Windows demande une
+autorisation pare-feu, autorisez Python sur le réseau privé.
+
+Routes disponibles :
+
+```text
+GET /health
+GET /api/v1/search?q=one+piece
+GET /api/v1/catalogues?q=one+piece
+GET /api/v1/planning
+GET /api/v1/new-episodes
+GET /api/v1/catalogue/<slug>
+GET /api/v1/catalogue/<slug>/seasons
+GET /api/v1/catalogue/<slug>/seasons/<season>/episodes
+```
+
+Exemple :
+
+```bash
+curl "http://localhost:5000/api/v1/search?q=naruto"
+curl "http://localhost:5000/api/v1/catalogue/one-piece/seasons"
+```
+
+Pour un déploiement Linux, vous pouvez utiliser Gunicorn :
+
+```bash
+gunicorn "anime_sama_api.api:app"
+```
+
 ---
 
 ## Installation des dépendances système
