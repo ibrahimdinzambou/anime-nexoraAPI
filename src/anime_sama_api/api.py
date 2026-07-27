@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import asyncio
 import os
+import time
 from functools import wraps
+from threading import Lock
 from typing import Any, Awaitable, Callable, TypeVar
 from urllib.parse import unquote
 
@@ -21,6 +23,16 @@ from .season import Season
 from .top_level import AnimeSama
 
 T = TypeVar("T")
+
+CATALOGUE_CACHE_TTL_SECONDS = max(
+    30, int(os.getenv("ANIME_SAMA_CATALOGUE_CACHE_TTL_SECONDS", "300"))
+)
+CATALOGUE_CACHE_STALE_TTL_SECONDS = max(
+    CATALOGUE_CACHE_TTL_SECONDS,
+    int(os.getenv("ANIME_SAMA_CATALOGUE_CACHE_STALE_TTL_SECONDS", "1800")),
+)
+_catalogue_cache: dict[tuple[str, int, int], tuple[float, float, dict[str, Any]]] = {}
+_catalogue_cache_lock = Lock()
 
 
 def _run(operation: Callable[[AnimeSama], Awaitable[T]], site_url: str) -> T:
@@ -77,6 +89,60 @@ def _slug_to_catalogue(api: AnimeSama, slug: str) -> Catalogue:
     return Catalogue(api.site_url.rstrip("/") + "/catalogue/" + clean_slug + "/", client=api.client)
 
 
+async def _catalogue_page(
+    api: AnimeSama, query: str, page: int, limit: int
+) -> dict[str, Any]:
+    """Read only the requested catalogue window instead of scraping every page."""
+    start = (page - 1) * limit
+    stop = start + limit
+    selected: list[dict[str, Any]] = []
+    seen = 0
+    has_more = False
+    async for catalogue in api.search_iter(query):
+        if seen >= start:
+            selected.append(_catalogue_json(catalogue))
+        seen += 1
+        if seen >= stop:
+            has_more = True
+            break
+    return {
+        "data": selected,
+        # The progressive iterator intentionally avoids scanning the remaining
+        # remote pages merely to compute an exact total.
+        "count": seen + (1 if has_more else 0),
+        "page": page,
+        "limit": limit,
+        "has_more": has_more,
+    }
+
+
+def _cached_catalogue_page(
+    key: tuple[str, int, int], loader: Callable[[], dict[str, Any]]
+) -> dict[str, Any]:
+    now = time.monotonic()
+    # Keep the lock during the first scrape so concurrent identical requests
+    # share its result instead of multiplying traffic to Anime-Sama.
+    with _catalogue_cache_lock:
+        cached = _catalogue_cache.get(key)
+        if cached and cached[0] > now:
+            return cached[2]
+        try:
+            payload = loader()
+        except Exception:
+            if cached and cached[1] > now:
+                return cached[2]
+            raise
+        if len(_catalogue_cache) >= 64:
+            oldest = min(_catalogue_cache, key=lambda item: _catalogue_cache[item][0])
+            _catalogue_cache.pop(oldest, None)
+        _catalogue_cache[key] = (
+            now + CATALOGUE_CACHE_TTL_SECONDS,
+            now + CATALOGUE_CACHE_STALE_TTL_SECONDS,
+            payload,
+        )
+        return payload
+
+
 def create_app() -> Flask:
     app = Flask(__name__, static_folder="web/static", template_folder="web/templates")
     site_url = os.getenv("ANIME_SAMA_SITE_URL", "https://anime-sama.to/")
@@ -119,11 +185,13 @@ def create_app() -> Flask:
     def catalogues() -> Any:
         query = request.args.get("q", "").strip()
         page = max(request.args.get("page", 1, type=int), 1)
-        limit = min(max(request.args.get("limit", 24, type=int), 1), 100)
-        result = _run(lambda api: api.search(query), site_url)
-        start = (page - 1) * limit
-        selected = result[start : start + limit]
-        return jsonify(data=[_catalogue_json(item) for item in selected], count=len(result), page=page, limit=limit)
+        limit = min(max(request.args.get("limit", 24, type=int), 1), 48)
+        key = (query.casefold(), page, limit)
+        payload = _cached_catalogue_page(
+            key,
+            lambda: _run(lambda api: _catalogue_page(api, query, page, limit), site_url),
+        )
+        return jsonify(payload)
 
     @app.get("/api/v1/planning")
     @endpoint_errors

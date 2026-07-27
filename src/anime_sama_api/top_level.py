@@ -305,7 +305,7 @@ class AnimeSama:
         pages_regex = re.findall(r"page=(\d+)", response.text)
 
         if not pages_regex:
-            raise StopAsyncIteration
+            return
 
         last_page = int(pages_regex[-1])
 
