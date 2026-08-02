@@ -11,6 +11,7 @@ from httpx import AsyncClient
 from .catalogue import Catalogue, Category
 from .episode import Episode
 from .langs import Lang, flags
+from .network_guard import safe_redirect_location
 from .utils import filter_literal, is_Literal
 
 logger = logging.getLogger(__name__)
@@ -35,11 +36,12 @@ async def find_site_url(
 
     if match:
         redirected = await client.get(match.group(1), follow_redirects=False)
-        return (
-            redirected.headers["location"] + "/"
-            if redirected.has_redirect_location
-            else match.group(1)
-        )
+        if redirected.has_redirect_location:
+            location = safe_redirect_location(
+                redirected.headers.get("location", ""), match.group(1)
+            )
+            return location.rstrip("/") + "/" if location else None
+        return match.group(1)
 
 
 @dataclass(frozen=True)

@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .langs import Lang, LangId, flags, id2lang, lang2ids
+from .network_guard import is_safe_player_url
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ class Players(list[str]):
         # Autofix old links
         for index, _ in enumerate(self):
             self[index] = self[index].replace("vidmoly.to", "vidmoly.net")
+        self[:] = [player for player in self if is_safe_player_url(player)]
 
         return ret
 

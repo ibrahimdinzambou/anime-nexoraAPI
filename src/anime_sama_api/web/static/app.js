@@ -1,9 +1,12 @@
 const $ = (selector) => document.querySelector(selector);
 const api = (path) => fetch(path).then(async (response) => { const body = await response.json(); if (!response.ok) throw new Error(body.error || 'Erreur API'); return body; });
 let selectedSlug = '';
+const BAD_URL_RX = /(doubleclick|googlesyndication|googletagmanager|google-analytics|facebook|fbcdn|disqus|popads|popcash|exoclick|adnxs|mgid|taboola|outbrain|adsterra|hilltopads|trafficjunky|propellerads|analytics|tracking|ads|advertisement)/i;
+const PLAYER_HOST_RX = /(?:^|\.)(vidmoly|sibnet|sendvid|uqload|netu|voe|dood|streamtape|filemoon|lulustream|kokoflix|mixdrop|vidoza|upstream|waaw|streamwish|streamsb|filelions|savefiles|wolfstream|vidzy|multiup|fsvid)\.[a-z0-9.-]+$/i;
 
 function slugFromUrl(url) { const parts = new URL(url).pathname.split('/').filter(Boolean); const i = parts.indexOf('catalogue'); return i >= 0 ? parts[i + 1] : parts.at(-1); }
 function setMessage(text = '') { $('#message').textContent = text; }
+function safePlayerUrl(value) { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !BAD_URL_RX.test(url.href) && PLAYER_HOST_RX.test(url.hostname); } catch { return false; } }
 
 $('#search-form').addEventListener('submit', async (event) => {
   event.preventDefault(); setMessage(''); const query = $('#search-input').value.trim();
@@ -35,6 +38,6 @@ async function loadEpisodes(button) {
   catch (error) { target.innerHTML = `<p class="tag">${error.message}</p>`; }
 }
 function playEpisode(episode) {
-  const languages = Object.entries(episode.languages || {}); const player = languages.flatMap(([, urls]) => urls)[0]; if (!player) { setMessage('Aucun lecteur disponible pour cet épisode.'); return; }
+  const languages = Object.entries(episode.languages || {}); const player = languages.flatMap(([, urls]) => urls).find(safePlayerUrl); if (!player) { setMessage('Aucun lecteur disponible pour cet épisode.'); return; }
   $('#player-label').textContent = `${episode.short_name} · épisode ${episode.index}`; $('#player-placeholder').hidden = true; $('#player').hidden = false; $('#player').src = player; $('#player').scrollIntoView({behavior:'smooth', block:'center'});
 }
